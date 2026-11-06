@@ -6,13 +6,14 @@ There is no build step: every file here is served as-is.
 
 ```
 index.html        front page; lists the demos from demos.js
+og.png            link-preview image for the front page (1200×630)
 demos.js          the list of demos (one entry per folder)
 assets/site.css   minimal shared base (system font, light/dark)
 assets/cmu.css    optional Computer Modern font for demos
 assets/fonts/     Computer Modern (CMU Serif) and its license, OFL.txt
 _template/        starting point for a new demo
 404.html          shown for unknown addresses
-orbitals/         Orbital Explorer
+orbitals/         Orbital Explorer (index.html + og.png preview)
 CNAME             the custom domain (demo.divo.link)
 LICENSE           MIT
 .nojekyll         tells Pages to serve files untouched
@@ -26,7 +27,9 @@ LICENSE           MIT
    ```js
    { path: "pendulum/", title: "Pendulum", description: "One line on what it shows." },
    ```
-3. Commit and push. Pages redeploys within a minute or two, and the demo is live at
+3. For a nice link preview, add a 1200×630 `og.png` to the folder and fill in the `og:` tags
+   the template already has (they need absolute URLs).
+4. Commit and push. Pages redeploys within a minute or two, and the demo is live at
    `https://demo.divo.link/pendulum/`.
 
 Use relative links (`../assets/site.css`) so pages also work when opened straight from disk.
