@@ -1,0 +1,20 @@
+/* Shared look for divo.link demos. Link it with a relative path (assets/site.css from the root, ../assets/site.css from a demo folder). */
+@font-face{font-family:"CMU Serif";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/cmu-serif-roman.woff2) format("woff2")}
+@font-face{font-family:"CMU Serif";font-style:italic;font-weight:400;font-display:swap;src:url(fonts/cmu-serif-italic.woff2) format("woff2")}
+:root{
+  --bg:#0b0c0e; --ink:#ececec; --muted:#8b9096; --line:rgba(236,236,236,.10);
+  --accent:#ffe45c; --blue:#58c4dd; --red:#fc6255; --green:#83c167; --teal:#5cd0b3; --purple:#9a72ac;
+  --serif:"CMU Serif","Latin Modern Roman",Georgia,serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font:400 19px/1.5 var(--serif);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+a:focus-visible,button:focus-visible{outline:1px solid var(--accent);outline-offset:4px}
+.page{max-width:640px;margin:0 auto;padding:72px 20px 96px}
+.title{font:italic 400 56px/1 var(--serif);margin:0 0 12px;text-wrap:balance}
+.lede{color:var(--muted);margin:0 0 48px}
+.back{display:inline-block;color:var(--muted);text-decoration:none;font-size:16px;margin-bottom:32px}
+.back:hover{color:var(--accent)}
+@media (max-width:420px){ .page{padding-top:48px} .title{font-size:44px} }

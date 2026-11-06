@@ -1,15 +1,30 @@
 # Demos
 
-Small interactive demos, served by GitHub Pages at https://demos.divo.link
+Small interactive demos, served as a plain static site by GitHub Pages at https://demos.divo.link
 
-| Path | Demo |
-|---|---|
-| `/orbitals/` | Orbital Explorer: atomic, hybrid and molecular orbitals in 3D |
+There is no build step: every file here is served as-is.
 
-## Adding a demo
+```
+index.html        front page; lists the demos from demos.js
+demos.js          the list of demos (one entry per folder)
+assets/site.css   shared look: colors, Computer Modern font, page layout
+assets/fonts/     Computer Modern (CMU Serif, SIL Open Font License)
+_template/        starting point for a new demo
+404.html          shown for unknown addresses
+orbitals/         Orbital Explorer
+CNAME             the custom domain (demos.divo.link)
+.nojekyll         tells Pages to serve files untouched
+```
 
-1. Create a folder, e.g. `new-demo/`, with a self-contained `index.html`.
-2. Add an entry to the list in the top-level `index.html`.
-3. Commit and push. Pages redeploys within a minute or two.
+## Add a demo
 
-`CNAME` holds the custom domain; `.nojekyll` makes Pages serve files as-is.
+1. Copy `_template/` to a new folder, e.g. `pendulum/`, and build the demo in its `index.html`.
+   Demos can also be fully self-contained (like `orbitals/`), which keeps them portable.
+2. Add an entry to `demos.js`:
+   ```js
+   { path: "pendulum/", title: "Pendulum", description: "One line on what it shows." },
+   ```
+3. Commit and push. Pages redeploys within a minute or two, and the demo is live at
+   `https://demos.divo.link/pendulum/`.
+
+Use relative links (`../assets/site.css`) so pages also work when opened straight from disk.
