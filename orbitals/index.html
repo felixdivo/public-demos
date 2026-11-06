@@ -59,7 +59,9 @@ body{
 .legend span{display:inline-flex;align-items:center;gap:7px}
 .legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
 .hud-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex:none}
-.hud-right .switch{pointer-events:auto}
+.hud-right .controls{display:flex;align-items:center;gap:18px;pointer-events:auto}
+.share{appearance:none;border:0;background:transparent;color:var(--muted);padding:6px;margin:-6px;cursor:pointer;display:inline-flex;transition:color .2s}
+.share:hover{color:var(--ink)}
 .busy{font:italic 400 15px var(--serif);color:var(--accent)}
 .busy[hidden]{display:none}
 .status{font-size:15px;color:var(--muted);text-align:right;white-space:nowrap;transition:opacity .5s}
@@ -128,9 +130,15 @@ button:focus-visible{outline:1px solid var(--accent);outline-offset:3px}
         <div class="legend" id="legend"></div>
       </div>
       <div class="hud-right">
-        <button type="button" class="switch" id="view-switch" role="switch" aria-checked="false" aria-label="Show as dot cloud">
-          <span class="sw-label">Surface</span><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Cloud</span>
-        </button>
+        <div class="controls">
+          <button type="button" class="share" id="share" aria-label="Copy a link to this view" title="Copy a link to this view">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3.2-3.2a4.5 4.5 0 0 0-6.4-6.4L12 5.6M14 10a4.5 4.5 0 0 0-6.4 0l-3.2 3.2a4.5 4.5 0 0 0 6.4 6.4L12 18.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </button>
+          <button type="button" class="switch" id="view-switch" role="switch" aria-checked="false" aria-label="Show as dot cloud">
+            <span class="sw-label">Surface</span><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Cloud</span>
+          </button>
+        </div>
+        <div class="busy" id="note" hidden role="status"></div>
         <div class="busy" id="busy" hidden>Computing…</div>
         <div class="status" id="status">Drag to rotate · pinch to zoom</div>
       </div>
@@ -252,45 +260,45 @@ const MOLS = {
     atoms: [['H',0,0,-0.7],['H',0,0,0.7]],
     basis: () => [orbital(1,0,0,ZH,[0,0,-0.7]), orbital(1,0,0,ZH,[0,0,0.7])],
     mos: [
-      { id:'s', label:'σ', occ:2, c:[1,1], text:'Bonding: the two 1s waves add, piling up electron density between the nuclei.' },
-      { id:'s*', label:'σ*', occ:0, c:[1,-1], text:'Antibonding: the waves cancel, leaving a node plane halfway between the nuclei.' } ] },
+      { id:'sigma', label:'σ', occ:2, c:[1,1], text:'Bonding: the two 1s waves add, piling up electron density between the nuclei.' },
+      { id:'sigma*', label:'σ*', occ:0, c:[1,-1], text:'Antibonding: the waves cancel, leaving a node plane halfway between the nuclei.' } ] },
   n2: { label: 'N<sub>2</sub>', name: 'Nitrogen',
     atoms: [['N',0,0,-1.037],['N',0,0,1.037]],
     basis: () => { const A=[0,0,-1.037], B=[0,0,1.037];
       return [orbital(2,0,0,ZN,A),orbital(2,0,0,ZN,B),orbital(2,1,1,ZN,A),orbital(2,1,1,ZN,B),orbital(2,1,-1,ZN,A),orbital(2,1,-1,ZN,B),orbital(2,1,0,ZN,A),orbital(2,1,0,ZN,B)]; },
     mos: [
-      { id:'s2s', label:'σ<sub>2s</sub>', occ:2, c:[1,1,0,0,0,0,0,0], text:'2s orbitals combined in phase. Low in energy and spread over both atoms.' },
-      { id:'s2s*', label:'σ*<sub>2s</sub>', occ:2, c:[1,-1,0,0,0,0,0,0], text:'Out-of-phase 2s combination, with a node between the atoms.' },
-      { id:'px', label:'π<sub>x</sub>', occ:2, c:[0,0,1,1,0,0,0,0], text:'Side-on overlap of 2p<sub>x</sub>: density above and below the bond axis. One of a degenerate pair.' },
-      { id:'py', label:'π<sub>y</sub>', occ:2, c:[0,0,0,0,1,1,0,0], text:'The second π bond, rotated 90° from π<sub>x</sub>. Together they make the triple bond’s two π bonds.' },
-      { id:'s2p', label:'σ<sub>2p</sub>', occ:2, c:[-.35,-.35,0,0,0,0,1,-1], homo:true, text:'End-on 2p overlap, mixed with 2s. In N<sub>2</sub> this sits above the π pair and is the HOMO.' },
-      { id:'pxs', label:'π*<sub>x</sub>', occ:0, c:[0,0,1,-1,0,0,0,0], lumo:true, text:'Antibonding π: a node plane cuts between the atoms. Empty in N<sub>2</sub> (the LUMO).' },
-      { id:'pys', label:'π*<sub>y</sub>', occ:0, c:[0,0,0,0,1,-1,0,0], lumo:true, text:'Second antibonding π, degenerate with π*<sub>x</sub>. Empty.' },
-      { id:'s2ps', label:'σ*<sub>2p</sub>', occ:0, c:[0,0,0,0,0,0,1,1], text:'Highest valence orbital: end-on 2p overlap out of phase.' } ] },
+      { id:'sigma2s', label:'σ<sub>2s</sub>', occ:2, c:[1,1,0,0,0,0,0,0], text:'2s orbitals combined in phase. Low in energy and spread over both atoms.' },
+      { id:'sigma2s*', label:'σ*<sub>2s</sub>', occ:2, c:[1,-1,0,0,0,0,0,0], text:'Out-of-phase 2s combination, with a node between the atoms.' },
+      { id:'pix', label:'π<sub>x</sub>', occ:2, c:[0,0,1,1,0,0,0,0], text:'Side-on overlap of 2p<sub>x</sub>: density above and below the bond axis. One of a degenerate pair.' },
+      { id:'piy', label:'π<sub>y</sub>', occ:2, c:[0,0,0,0,1,1,0,0], text:'The second π bond, rotated 90° from π<sub>x</sub>. Together they make the triple bond’s two π bonds.' },
+      { id:'sigma2p', label:'σ<sub>2p</sub>', occ:2, c:[-.35,-.35,0,0,0,0,1,-1], homo:true, text:'End-on 2p overlap, mixed with 2s. In N<sub>2</sub> this sits above the π pair and is the HOMO.' },
+      { id:'pix*', label:'π*<sub>x</sub>', occ:0, c:[0,0,1,-1,0,0,0,0], lumo:true, text:'Antibonding π: a node plane cuts between the atoms. Empty in N<sub>2</sub> (the LUMO).' },
+      { id:'piy*', label:'π*<sub>y</sub>', occ:0, c:[0,0,0,0,1,-1,0,0], lumo:true, text:'Second antibonding π, degenerate with π*<sub>x</sub>. Empty.' },
+      { id:'sigma2p*', label:'σ*<sub>2p</sub>', occ:0, c:[0,0,0,0,0,0,1,1], text:'Highest valence orbital: end-on 2p overlap out of phase.' } ] },
   o2: { label: 'O<sub>2</sub>', name: 'Oxygen',
     atoms: [['O', ...O2A], ['O', ...O2B]],
     basis: () => [orbital(2,0,0,ZO,O2A),orbital(2,0,0,ZO,O2B),orbital(2,1,1,ZO,O2A),orbital(2,1,1,ZO,O2B),orbital(2,1,-1,ZO,O2A),orbital(2,1,-1,ZO,O2B),orbital(2,1,0,ZO,O2A),orbital(2,1,0,ZO,O2B)],
     mos: [
-      { id:'s2s', label:'σ<sub>2s</sub>', occ:2, c:[1,1,0,0,0,0,0,0], text:'2s orbitals combined in phase, spread over both atoms.' },
-      { id:'s2s*', label:'σ*<sub>2s</sub>', occ:2, c:[1,-1,0,0,0,0,0,0], text:'Out-of-phase 2s combination, with a node between the atoms.' },
-      { id:'s2p', label:'σ<sub>2p</sub>', occ:2, c:[0,0,0,0,0,0,1,-1], text:'End-on 2p overlap. In O<sub>2</sub> it lies below the π pair, the reverse of N<sub>2</sub>.' },
-      { id:'px', label:'π<sub>x</sub>', occ:2, c:[0,0,1,1,0,0,0,0], text:'Side-on overlap of 2p<sub>x</sub>, one of a degenerate pair of π bonds.' },
-      { id:'py', label:'π<sub>y</sub>', occ:2, c:[0,0,0,0,1,1,0,0], text:'The second π bond, rotated 90° from π<sub>x</sub>.' },
-      { id:'pxs', label:'π*<sub>x</sub>', occ:1, c:[0,0,1,-1,0,0,0,0], homo:true, text:'Holds a single electron. With π*<sub>y</sub> that makes two unpaired electrons, which is why liquid oxygen sticks to a magnet.' },
-      { id:'pys', label:'π*<sub>y</sub>', occ:1, c:[0,0,0,0,1,-1,0,0], homo:true, text:'The other half-filled π*. Two unpaired spins make ground-state O<sub>2</sub> a triplet.' },
-      { id:'s2ps', label:'σ*<sub>2p</sub>', occ:0, c:[0,0,0,0,0,0,1,1], lumo:true, text:'Empty antibonding σ*. Electrons added here weaken the O–O bond, as in peroxide.' } ] },
+      { id:'sigma2s', label:'σ<sub>2s</sub>', occ:2, c:[1,1,0,0,0,0,0,0], text:'2s orbitals combined in phase, spread over both atoms.' },
+      { id:'sigma2s*', label:'σ*<sub>2s</sub>', occ:2, c:[1,-1,0,0,0,0,0,0], text:'Out-of-phase 2s combination, with a node between the atoms.' },
+      { id:'sigma2p', label:'σ<sub>2p</sub>', occ:2, c:[0,0,0,0,0,0,1,-1], text:'End-on 2p overlap. In O<sub>2</sub> it lies below the π pair, the reverse of N<sub>2</sub>.' },
+      { id:'pix', label:'π<sub>x</sub>', occ:2, c:[0,0,1,1,0,0,0,0], text:'Side-on overlap of 2p<sub>x</sub>, one of a degenerate pair of π bonds.' },
+      { id:'piy', label:'π<sub>y</sub>', occ:2, c:[0,0,0,0,1,1,0,0], text:'The second π bond, rotated 90° from π<sub>x</sub>.' },
+      { id:'pix*', label:'π*<sub>x</sub>', occ:1, c:[0,0,1,-1,0,0,0,0], homo:true, text:'Holds a single electron. With π*<sub>y</sub> that makes two unpaired electrons, which is why liquid oxygen sticks to a magnet.' },
+      { id:'piy*', label:'π*<sub>y</sub>', occ:1, c:[0,0,0,0,1,-1,0,0], homo:true, text:'The other half-filled π*. Two unpaired spins make ground-state O<sub>2</sub> a triplet.' },
+      { id:'sigma2p*', label:'σ*<sub>2p</sub>', occ:0, c:[0,0,0,0,0,0,1,1], lumo:true, text:'Empty antibonding σ*. Electrons added here weaken the O–O bond, as in peroxide.' } ] },
   co: { label: 'CO', name: 'Carbon monoxide',
     atoms: [['C', ...COC], ['O', ...COO]],
     basis: () => [orbital(2,0,0,ZC,COC),orbital(2,1,1,ZC,COC),orbital(2,1,-1,ZC,COC),orbital(2,1,0,ZC,COC),orbital(2,0,0,ZO,COO),orbital(2,1,1,ZO,COO),orbital(2,1,-1,ZO,COO),orbital(2,1,0,ZO,COO)],
     mos: [
-      { id:'3s', label:'3σ', occ:2, c:[.3,0,0,0,.85,0,0,0], text:'Mostly oxygen 2s: low in energy and held close to the oxygen.' },
-      { id:'4s', label:'4σ', occ:2, c:[.4,0,0,0,-.35,0,0,-.7], text:'σ bonding along the C–O axis, weighted towards oxygen.' },
-      { id:'1px', label:'1π<sub>x</sub>', occ:2, c:[0,.45,0,0,0,.75,0,0], text:'π bond, larger on the more electronegative oxygen.' },
-      { id:'1py', label:'1π<sub>y</sub>', occ:2, c:[0,0,.45,0,0,0,.75,0], text:'The second π bond, rotated 90°. With 4σ this gives CO its triple bond.' },
-      { id:'5s', label:'5σ', occ:2, c:[.6,0,0,-.6,0,0,0,.2], homo:true, text:'HOMO: a lone pair on carbon, pointing away from oxygen. CO binds metals, such as the iron in haemoglobin, through this lobe.' },
-      { id:'2px', label:'2π*<sub>x</sub>', occ:0, c:[0,.8,0,0,0,-.5,0,0], lumo:true, text:'LUMO: empty π*, bigger on carbon. Metals push electrons back into it, which strengthens the metal–CO bond.' },
-      { id:'2py', label:'2π*<sub>y</sub>', occ:0, c:[0,0,.8,0,0,0,-.5,0], lumo:true, text:'The second empty π*, degenerate with 2π*<sub>x</sub>.' },
-      { id:'6s', label:'6σ*', occ:0, c:[.5,0,0,.6,-.4,0,0,.5], text:'Antibonding σ*, the highest valence orbital.' } ] },
+      { id:'3sigma', label:'3σ', occ:2, c:[.3,0,0,0,.85,0,0,0], text:'Mostly oxygen 2s: low in energy and held close to the oxygen.' },
+      { id:'4sigma', label:'4σ', occ:2, c:[.4,0,0,0,-.35,0,0,-.7], text:'σ bonding along the C–O axis, weighted towards oxygen.' },
+      { id:'1pix', label:'1π<sub>x</sub>', occ:2, c:[0,.45,0,0,0,.75,0,0], text:'π bond, larger on the more electronegative oxygen.' },
+      { id:'1piy', label:'1π<sub>y</sub>', occ:2, c:[0,0,.45,0,0,0,.75,0], text:'The second π bond, rotated 90°. With 4σ this gives CO its triple bond.' },
+      { id:'5sigma', label:'5σ', occ:2, c:[.6,0,0,-.6,0,0,0,.2], homo:true, text:'HOMO: a lone pair on carbon, pointing away from oxygen. CO binds metals, such as the iron in haemoglobin, through this lobe.' },
+      { id:'2pix*', label:'2π*<sub>x</sub>', occ:0, c:[0,.8,0,0,0,-.5,0,0], lumo:true, text:'LUMO: empty π*, bigger on carbon. Metals push electrons back into it, which strengthens the metal–CO bond.' },
+      { id:'2piy*', label:'2π*<sub>y</sub>', occ:0, c:[0,0,.8,0,0,0,-.5,0], lumo:true, text:'The second empty π*, degenerate with 2π*<sub>x</sub>.' },
+      { id:'6sigma*', label:'6σ*', occ:0, c:[.5,0,0,.6,-.4,0,0,.5], text:'Antibonding σ*, the highest valence orbital.' } ] },
   h2o: { label: 'H<sub>2</sub>O', name: 'Water',
     atoms: [['O',0,0,0],['H',...H2O_H[0]],['H',...H2O_H[1]]],
     basis: () => [orbital(2,0,0,ZO),orbital(2,1,1,ZO),orbital(2,1,-1,ZO),orbital(2,1,0,ZO),orbital(1,0,0,ZH,H2O_H[0]),orbital(1,0,0,ZH,H2O_H[1])],
@@ -299,29 +307,29 @@ const MOLS = {
       { id:'1b2', label:'1b<sub>2</sub>', occ:2, c:[0,0,.6,0,.4,-.4], text:'O 2p<sub>y</sub> bonding to the two H atoms with opposite signs.' },
       { id:'3a1', label:'3a<sub>1</sub>', occ:2, c:[.3,0,0,-.75,.3,.3], text:'O 2p<sub>z</sub> mixed with 2s, bonding to both H atoms at once.' },
       { id:'1b1', label:'1b<sub>1</sub>', occ:2, c:[0,1,0,0,0,0], homo:true, text:'A pure O 2p lone pair, perpendicular to the molecular plane. The HOMO.' },
-      { id:'4a1', label:'4a<sub>1</sub>', occ:0, c:[.5,0,0,-.45,-.6,-.6], lumo:true, text:'Antibonding O–H combination. Empty (the LUMO).' },
-      { id:'2b2', label:'2b<sub>2</sub>', occ:0, c:[0,0,.55,0,-.7,.7], text:'Antibonding partner of 1b<sub>2</sub>. Empty.' } ] },
+      { id:'4a1*', label:'4a<sub>1</sub>', occ:0, c:[.5,0,0,-.45,-.6,-.6], lumo:true, text:'Antibonding O–H combination. Empty (the LUMO).' },
+      { id:'2b2*', label:'2b<sub>2</sub>', occ:0, c:[0,0,.55,0,-.7,.7], text:'Antibonding partner of 1b<sub>2</sub>. Empty.' } ] },
   ch4: { label: 'CH<sub>4</sub>', name: 'Methane',
     atoms: [['C',0,0,0], ...CH4H.map(p => ['H', ...p])],
     basis: () => [orbital(2,0,0,ZC),orbital(2,1,1,ZC),orbital(2,1,-1,ZC),orbital(2,1,0,ZC), ...CH4H.map(p => orbital(1,0,0,ZH,p))],
     mos: [
       { id:'2a1', label:'2a<sub>1</sub>', occ:2, c:[.7,0,0,0,.25,.25,.25,.25], text:'Carbon 2s bonding to all four hydrogens at once.' },
-      { id:'tx', label:'1t<sub>2x</sub>', occ:2, c:[0,.6,0,0,.3,.3,-.3,-.3], homo:true, text:'One of three identical bonding orbitals along x, y and z. Together with 2a<sub>1</sub> they give the same total density as four sp³ bonds.' },
-      { id:'ty', label:'1t<sub>2y</sub>', occ:2, c:[0,0,.6,0,.3,-.3,.3,-.3], homo:true, text:'Degenerate partner along y. Photoelectron spectra show methane’s electrons at two energies, matching this picture.' },
-      { id:'tz', label:'1t<sub>2z</sub>', occ:2, c:[0,0,0,.6,.3,-.3,-.3,.3], homo:true, text:'Degenerate partner along z.' },
-      { id:'3a1', label:'3a<sub>1</sub>*', occ:0, c:[.6,0,0,0,-.4,-.4,-.4,-.4], lumo:true, text:'LUMO: carbon 2s out of phase with all four hydrogens.' },
-      { id:'sx', label:'2t<sub>2x</sub>*', occ:0, c:[0,.6,0,0,-.45,-.45,.45,.45], text:'Antibonding partner of 1t<sub>2x</sub>.' },
-      { id:'sy', label:'2t<sub>2y</sub>*', occ:0, c:[0,0,.6,0,-.45,.45,-.45,.45], text:'Antibonding partner of 1t<sub>2y</sub>.' },
-      { id:'sz', label:'2t<sub>2z</sub>*', occ:0, c:[0,0,0,.6,-.45,.45,.45,-.45], text:'Antibonding partner of 1t<sub>2z</sub>.' } ] },
+      { id:'1t2x', label:'1t<sub>2x</sub>', occ:2, c:[0,.6,0,0,.3,.3,-.3,-.3], homo:true, text:'One of three identical bonding orbitals along x, y and z. Together with 2a<sub>1</sub> they give the same total density as four sp³ bonds.' },
+      { id:'1t2y', label:'1t<sub>2y</sub>', occ:2, c:[0,0,.6,0,.3,-.3,.3,-.3], homo:true, text:'Degenerate partner along y. Photoelectron spectra show methane’s electrons at two energies, matching this picture.' },
+      { id:'1t2z', label:'1t<sub>2z</sub>', occ:2, c:[0,0,0,.6,.3,-.3,-.3,.3], homo:true, text:'Degenerate partner along z.' },
+      { id:'3a1*', label:'3a<sub>1</sub>*', occ:0, c:[.6,0,0,0,-.4,-.4,-.4,-.4], lumo:true, text:'LUMO: carbon 2s out of phase with all four hydrogens.' },
+      { id:'2t2x*', label:'2t<sub>2x</sub>*', occ:0, c:[0,.6,0,0,-.45,-.45,.45,.45], text:'Antibonding partner of 1t<sub>2x</sub>.' },
+      { id:'2t2y*', label:'2t<sub>2y</sub>*', occ:0, c:[0,0,.6,0,-.45,.45,-.45,.45], text:'Antibonding partner of 1t<sub>2y</sub>.' },
+      { id:'2t2z*', label:'2t<sub>2z</sub>*', occ:0, c:[0,0,0,.6,-.45,.45,.45,-.45], text:'Antibonding partner of 1t<sub>2z</sub>.' } ] },
   h2co: { label: 'H<sub>2</sub>CO', name: 'Formaldehyde',
     atoms: [['C',0,0,0], ['O', ...FO], ...FH.map(p => ['H', ...p])],
     basis: () => [orbital(2,0,0,ZC),orbital(2,1,1,ZC),orbital(2,1,-1,ZC),orbital(2,1,0,ZC),orbital(2,0,0,ZO,FO),orbital(2,1,1,ZO,FO),orbital(2,1,-1,ZO,FO),orbital(2,1,0,ZO,FO), ...FH.map(p => orbital(1,0,0,ZH,p))],
     mos: [
-      { id:'sco', label:'σ<sub>CO</sub>', occ:2, c:[.3,0,0,.5,.2,0,0,-.6,.15,.15], text:'σ bond between carbon and oxygen.' },
-      { id:'sch', label:'σ<sub>CH</sub>', occ:2, c:[0,0,.55,0,0,0,.25,0,.4,-.4], text:'C–H bonding, spread over both hydrogens.' },
-      { id:'pi', label:'π<sub>CO</sub>', occ:2, c:[0,.5,0,0,0,.75,0,0,0,0], text:'The C=O π bond, above and below the molecular plane, larger on oxygen.' },
-      { id:'n', label:'n<sub>O</sub>', occ:2, c:[0,0,-.25,0,0,0,.85,0,.15,-.15], homo:true, text:'HOMO: an oxygen lone pair lying in the molecular plane. Lifting an electron from here into π* (n→π*) is why formaldehyde absorbs UV light.' },
-      { id:'pis', label:'π*<sub>CO</sub>', occ:0, c:[0,.8,0,0,0,-.6,0,0,0,0], lumo:true, text:'LUMO: empty π*, bigger on carbon. Nucleophiles attack the carbon here.' } ] },
+      { id:'sigma-co', label:'σ<sub>CO</sub>', occ:2, c:[.3,0,0,.5,.2,0,0,-.6,.15,.15], text:'σ bond between carbon and oxygen.' },
+      { id:'sigma-ch', label:'σ<sub>CH</sub>', occ:2, c:[0,0,.55,0,0,0,.25,0,.4,-.4], text:'C–H bonding, spread over both hydrogens.' },
+      { id:'pi-co', label:'π<sub>CO</sub>', occ:2, c:[0,.5,0,0,0,.75,0,0,0,0], text:'The C=O π bond, above and below the molecular plane, larger on oxygen.' },
+      { id:'n-o', label:'n<sub>O</sub>', occ:2, c:[0,0,-.25,0,0,0,.85,0,.15,-.15], homo:true, text:'HOMO: an oxygen lone pair lying in the molecular plane. Lifting an electron from here into π* (n→π*) is why formaldehyde absorbs UV light.' },
+      { id:'pi-co*', label:'π*<sub>CO</sub>', occ:0, c:[0,.8,0,0,0,-.6,0,0,0,0], lumo:true, text:'LUMO: empty π*, bigger on carbon. Nucleophiles attack the carbon here.' } ] },
   c2h4: { label: 'C<sub>2</sub>H<sub>4</sub>', name: 'Ethylene',
     atoms: [['C',-1.264,0,0],['C',1.264,0,0],['H',-2.331,1.755,0],['H',-2.331,-1.755,0],['H',2.331,1.755,0],['H',2.331,-1.755,0]],
     basis: () => [orbital(2,1,0,ZC,[-1.264,0,0]), orbital(2,1,0,ZC,[1.264,0,0])],
@@ -332,25 +340,25 @@ const MOLS = {
     atoms: [...BDC.map(p => ['C', ...p]), ...BDH.map(p => ['H', ...p])],
     basis: () => BDC.map(p => orbital(2,1,0,ZC,p)),
     mos: [
-      { id:'p1', label:'π<sub>1</sub>', occ:2, c:[.37,.6,.6,.37], text:'All four 2p<sub>z</sub> in phase: bonding along the whole chain. No nodes.' },
-      { id:'p2', label:'π<sub>2</sub>', occ:2, c:[.6,.37,-.37,-.6], homo:true, text:'HOMO: one node, through the middle bond. Bonding at both ends, antibonding in the centre.' },
-      { id:'p3', label:'π<sub>3</sub>*', occ:0, c:[.6,-.37,-.37,.6], lumo:true, text:'LUMO: two nodes. UV light at 217 nm lifts an electron here from π<sub>2</sub>.' },
-      { id:'p4', label:'π<sub>4</sub>*', occ:0, c:[.37,-.6,.6,-.37], text:'Sign flips at every carbon: three nodes. The highest π level.' } ] },
+      { id:'pi1', label:'π<sub>1</sub>', occ:2, c:[.37,.6,.6,.37], text:'All four 2p<sub>z</sub> in phase: bonding along the whole chain. No nodes.' },
+      { id:'pi2', label:'π<sub>2</sub>', occ:2, c:[.6,.37,-.37,-.6], homo:true, text:'HOMO: one node, through the middle bond. Bonding at both ends, antibonding in the centre.' },
+      { id:'pi3*', label:'π<sub>3</sub>*', occ:0, c:[.6,-.37,-.37,.6], lumo:true, text:'LUMO: two nodes. UV light at 217 nm lifts an electron here from π<sub>2</sub>.' },
+      { id:'pi4*', label:'π<sub>4</sub>*', occ:0, c:[.37,-.6,.6,-.37], text:'Sign flips at every carbon: three nodes. The highest π level.' } ] },
   c6h6: { label: 'C<sub>6</sub>H<sub>6</sub>', name: 'Benzene',
     atoms: [...benzC.map(p => ['C', ...p]), ...benzH.map(p => ['H', ...p])],
     basis: () => benzC.map(p => orbital(2,1,0,ZC,p)),
     mos: [
-      { id:'p1', label:'π<sub>1</sub>', occ:2, c:[1,1,1,1,1,1], text:'All six 2p<sub>z</sub> in phase: one continuous ring above and below. No vertical nodes.' },
-      { id:'p2', label:'π<sub>2</sub>', occ:2, c:[2,1,-1,-2,-1,1], homo:true, text:'One node plane. Degenerate with π<sub>3</sub>; together they are the HOMO.' },
-      { id:'p3', label:'π<sub>3</sub>', occ:2, c:[0,1,1,0,-1,-1], homo:true, text:'One node plane, rotated 90° from π<sub>2</sub>. Also a HOMO.' },
-      { id:'p4', label:'π<sub>4</sub>*', occ:0, c:[0,1,-1,0,1,-1], lumo:true, text:'Two node planes. Empty; degenerate with π<sub>5</sub>* (the LUMO pair).' },
-      { id:'p5', label:'π<sub>5</sub>*', occ:0, c:[2,-1,-1,2,-1,-1], lumo:true, text:'Two node planes. Empty.' },
-      { id:'p6', label:'π<sub>6</sub>*', occ:0, c:[1,-1,1,-1,1,-1], text:'Sign flips at every carbon: three node planes. The highest π level.' } ] }
+      { id:'pi1', label:'π<sub>1</sub>', occ:2, c:[1,1,1,1,1,1], text:'All six 2p<sub>z</sub> in phase: one continuous ring above and below. No vertical nodes.' },
+      { id:'pi2', label:'π<sub>2</sub>', occ:2, c:[2,1,-1,-2,-1,1], homo:true, text:'One node plane. Degenerate with π<sub>3</sub>; together they are the HOMO.' },
+      { id:'pi3', label:'π<sub>3</sub>', occ:2, c:[0,1,1,0,-1,-1], homo:true, text:'One node plane, rotated 90° from π<sub>2</sub>. Also a HOMO.' },
+      { id:'pi4*', label:'π<sub>4</sub>*', occ:0, c:[0,1,-1,0,1,-1], lumo:true, text:'Two node planes. Empty; degenerate with π<sub>5</sub>* (the LUMO pair).' },
+      { id:'pi5*', label:'π<sub>5</sub>*', occ:0, c:[2,-1,-1,2,-1,-1], lumo:true, text:'Two node planes. Empty.' },
+      { id:'pi6*', label:'π<sub>6</sub>*', occ:0, c:[1,-1,1,-1,1,-1], text:'Sign flips at every carbon: three node planes. The highest π level.' } ] }
 };
 
 /* ---------- state ---------- */
 // m, hi and mo hold either one orbital or 'all' for the whole set; a single orbital is the default everywhere
-const S = { tab: 'atomic', sub: '3d', m: 0, hyb: 'sp3', hi: '0', mol: 'c6h6', mo: 'p2', view: 'surface' };
+const S = { tab: 'atomic', sub: '3d', m: 0, hyb: 'sp3', hi: '0', mol: 'c6h6', mo: 'pi2', view: 'surface' };
 const setColors = (i, multi) => multi ? { pos: SET_HUES[i % SET_HUES.length], neg: dim(SET_HUES[i % SET_HUES.length]) } : { pos: POS, neg: NEG };
 
 /* ---------- specs: basis functions + coefficient sets ---------- */
@@ -800,6 +808,7 @@ function renderUI() {
     }
   }
   $('name').innerHTML = name; $('sub').textContent = subtitle; $('info').innerHTML = info;
+  document.title = `${$('name').textContent} · Orbital Explorer`;
   const lg = $('legend');
   if (legend === 'phase') lg.innerHTML = `<span><i style="background:${POS}"></i>ψ &gt; 0</span><span><i style="background:${NEG}"></i>ψ &lt; 0</span>`;
   else lg.innerHTML = `<span>one color per hybrid · darker lobes ψ &lt; 0</span>`;
@@ -809,17 +818,77 @@ function defaultM(s) { return { p: 0, d: 0, f: 0, s: 0 }[s[1]]; }
 let pending = 0, done = 0;
 function update() {
   renderUI();
+  writeHash();
   const ticket = ++pending;
   const spec = currentSpec();
   $('busy').hidden = cache.key === spec.key + '|' + COARSE + '|' + BUDGET;   // shown only when new shapes must be computed
   requestAnimationFrame(() => setTimeout(() => { if (ticket === pending) { build(); done = ticket; $('busy').hidden = true; } }, 0));
 }
 
+/* ---------- shareable views: the address ends in e.g. #molecular-ch4-2a1, #atomic-3d-x2-y2, #hybrid-sp3-all-cloud ---------- */
+const slug = t => String(t).replace(/²/g, '2').replace(/³/g, '3').replace(/−/g, '-').replace(/\*/g, '-star').replace(/[^A-Za-z0-9-]/g, '').toLowerCase();
+function stateToHash() {
+  let parts;
+  if (S.tab === 'atomic') {
+    const l = L_OF[S.sub[1]];
+    parts = ['atomic', S.sub];
+    if (l) parts.push(S.m === 'all' ? 'all' : slug(ORIENT[l].find(o => o[0] === S.m)[1]));
+  } else if (S.tab === 'hybrid') {
+    parts = ['hybrid', S.hyb, S.hi === 'all' ? 'all' : 'h' + (+S.hi + 1)];
+  } else {
+    parts = ['molecular', S.mol, S.mo === 'all' ? 'all' : slug(S.mo)];
+  }
+  if (S.view === 'cloud') parts.push('cloud');
+  return parts.join('-');
+}
+function applyHash(hash) {   // returns true if the address named a valid view
+  let s = decodeURIComponent(hash.replace(/^#/, '')).toLowerCase();
+  if (!s) return false;
+  let view = 'surface';
+  if (s.endsWith('-cloud')) { view = 'cloud'; s = s.slice(0, -6); }
+  const [tab, item, ...rest] = s.split('-'), v = rest.join('-');
+  if (tab === 'atomic' && SUBSHELLS.includes(item)) {
+    const l = L_OF[item[1]];
+    let m = 0;
+    if (l) { const o = ORIENT[l].find(o => slug(o[1]) === v); m = v === 'all' ? 'all' : o ? o[0] : defaultM(item); }
+    Object.assign(S, { tab, sub: item, m });
+  } else if (tab === 'hybrid' && HYBRIDS[item]) {
+    const k = +v.replace(/^h/, '') - 1;
+    Object.assign(S, { tab, hyb: item, hi: v === 'all' ? 'all' : k >= 0 && k < HYBRIDS[item].sets.length ? String(k) : '0' });
+  } else if (tab === 'molecular' && MOLS[item]) {
+    const M = MOLS[item], f = M.mos.find(x => slug(x.id) === v);
+    Object.assign(S, { tab, mol: item, mo: v === 'all' ? 'all' : f ? f.id : (M.mos.find(x => x.homo) || M.mos[0]).id });
+  } else return false;
+  S.view = view;
+  return true;
+}
+function writeHash() {
+  const h = '#' + stateToHash();
+  if (location.hash === h) return;
+  try { history.replaceState(null, '', h); } catch (e) { try { location.replace(h); } catch (e2) { /* address can't be changed here */ } }
+}
+addEventListener('hashchange', () => { if (location.hash !== '#' + stateToHash() && applyHash(location.hash)) update(); });
+
+let noteTimer = 0;
+function note(text) {
+  const el = $('note'); el.textContent = text; el.hidden = false;
+  clearTimeout(noteTimer); noteTimer = setTimeout(() => { el.hidden = true; }, 1800);
+}
+$('share').addEventListener('click', async () => {
+  const url = location.href;
+  try {
+    if (navigator.share && matchMedia('(pointer: coarse)').matches) { await navigator.share({ title: document.title, url }); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(url); note('Link copied'); }
+  catch (e) { note('Copy the address to share'); }
+});
+
 document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => { S.tab = b.dataset.tab; update(); }));
 $('view-switch').addEventListener('click', () => { S.view = S.view === 'cloud' ? 'surface' : 'cloud'; update(); });
 
 // read-only hook used for automated checks
 window.__orb = { stats: () => lastStats, settled: () => targetDist === null && pending === done, camera, content, canvas, controls };
+applyHash(location.hash);
 resize();
 renderUI();
 (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => update());
