@@ -51,18 +51,27 @@ body{
 .labels span{position:absolute;left:0;top:0;font:italic 400 17px/1.2 var(--serif);color:var(--ink);white-space:nowrap;will-change:transform}
 .labels sub{font-size:.7em}
 .labels small{font-style:normal;font-size:11px;letter-spacing:.06em;color:var(--accent);margin-left:5px;vertical-align:.15em}
+/* Scale bar: true length at the depth of the orbital centre */
+.scale{position:absolute;left:20px;bottom:16px;display:flex;flex-direction:column;align-items:flex-start;gap:5px;pointer-events:none;color:var(--muted);transition:bottom .2s}
+.scale-label{font:italic 400 15px/1 var(--serif)}
+.scale-bar{display:block;height:5px;border:1px solid currentColor;border-top:0;opacity:.8}
+@media (min-width:820px){ .scale{left:36px} }
 .hud{position:absolute;top:18px;left:20px;right:20px;pointer-events:none;display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
 .name{margin:0;font:italic 400 48px/1 var(--serif)}
+.name{padding-right:210px}   /* room for the controls on the right */
 .name sub{font-size:.55em;vertical-align:-.3em;margin-left:.04em}
 .sub{margin:10px 0 0;color:var(--muted);font-size:16px}
 .legend{display:flex;gap:16px;margin-top:8px;font-size:15px;color:var(--muted);flex-wrap:wrap}
 .legend span{display:inline-flex;align-items:center;gap:7px}
 .legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
-.hud-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex:none}
+.hud > div:first-child{min-width:0}
+.hud-right{position:absolute;top:0;right:0;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
 .hud-right .controls{display:flex;align-items:center;gap:18px;pointer-events:auto}
 .share{appearance:none;border:0;background:transparent;color:var(--muted);padding:6px;margin:-6px;cursor:pointer;display:inline-flex;transition:color .2s}
 .share:hover{color:var(--ink)}
-.busy{font:italic 400 15px var(--serif);color:var(--accent)}
+.notes{position:absolute;right:20px;bottom:16px;display:flex;flex-direction:column;align-items:flex-end;gap:4px;pointer-events:none}
+@media (min-width:820px){ .notes{right:36px} }
+.busy{font:italic 400 15px/1 var(--serif);color:var(--accent)}
 .busy[hidden]{display:none}
 .status{font-size:15px;color:var(--muted);text-align:right;white-space:nowrap;transition:opacity .5s}
 .status.gone{opacity:0}
@@ -123,6 +132,7 @@ button:focus-visible{outline:1px solid var(--accent);outline-offset:3px}
   <main class="stage" id="stage">
     <canvas id="gl" tabindex="0" aria-label="3D orbital view. Drag to rotate, pinch or scroll to zoom."></canvas>
     <div class="labels" id="labels" aria-hidden="true"></div>
+    <div class="scale" id="scale" aria-hidden="true"><span class="scale-label" id="scale-label">1 Å</span><span class="scale-bar" id="scale-bar"></span></div>
     <div class="hud">
       <div>
         <h1 class="name" id="name">3d<sub>z²</sub></h1>
@@ -138,11 +148,11 @@ button:focus-visible{outline:1px solid var(--accent);outline-offset:3px}
             <span class="sw-label">Surface</span><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Cloud</span>
           </button>
         </div>
-        <div class="busy" id="note" hidden role="status"></div>
-        <div class="busy" id="busy" hidden>Computing…</div>
+
         <div class="status" id="status">Drag to rotate · pinch to zoom</div>
       </div>
     </div>
+    <div class="notes" id="notes" role="status"><span class="busy" id="busy" hidden>Computing…</span></div>
   </main>
 
   <nav class="dock" aria-label="Orbital controls">
@@ -705,13 +715,32 @@ function build() {
   lastStats = { key: spec.key, verts, nan, ms: Math.round(performance.now() - t0), L: G.L, fitR, cells: cells.length, cols: gridCols };
 }
 
+const SCALE_STEPS = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100];   // ångström
+let scaleShown = '';
+function updateScale() {
+  const h = $('stage').clientHeight || 1, d = camera.position.length();
+  const pxPerAngstrom = (h / 2) / (Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * d) / BOHR;
+  const maxPx = SMALL ? 96 : 120;
+  let step = SCALE_STEPS[0];
+  for (const st of SCALE_STEPS) if (st * pxPerAngstrom <= maxPx) step = st;
+  const px = Math.round(step * pxPerAngstrom), key = step + '|' + px;
+  if (key === scaleShown) return;
+  scaleShown = key;
+  $('scale-bar').style.width = px + 'px';
+  $('scale-label').textContent = `${step} Å`;
+}
+
 let targetDist = null;
 let overlap = 0, regionTop = 0;
 function measure() {
   const st = $('stage'), dock = document.querySelector('.dock');
   overlap = getComputedStyle(dock).position === 'absolute' ? dock.offsetHeight + 24 : 0;
-  regionTop = SMALL ? Math.min(st.clientHeight * 0.3, document.querySelector('.hud > div').getBoundingClientRect().bottom - st.getBoundingClientRect().top + 4) : 0;
+  // keep the picture clear of the title block unless there is room beside it
+  regionTop = st.clientWidth < 1100 ? Math.min(st.clientHeight * 0.3, document.querySelector('.hud > div').getBoundingClientRect().bottom - st.getBoundingClientRect().top + 4) : 0;
   const w = st.clientWidth, h = st.clientHeight, shift = (overlap - regionTop) / 2;
+  const dockLeft = dock.getBoundingClientRect().left - st.getBoundingClientRect().left;
+  $('scale').style.bottom = overlap && dockLeft < 200 ? (overlap + 4) + 'px' : '';
+  $('notes').style.bottom = overlap && dockLeft < 200 ? (overlap + 4) + 'px' : '';
   if (shift) camera.setViewOffset(w, h, 0, shift, w, h); else camera.clearViewOffset();
   camera.updateProjectionMatrix();
 }
@@ -753,6 +782,7 @@ new ResizeObserver(resize).observe($('stage'));
   }
   controls.update();
   placeCells();
+  updateScale();
   if (!window.__orbNoRender) renderer.render(scene, camera);
 })();
 
@@ -871,7 +901,9 @@ addEventListener('hashchange', () => { if (location.hash !== '#' + stateToHash()
 
 let noteTimer = 0;
 function note(text) {
-  const el = $('note'); el.textContent = text; el.hidden = false;
+  let el = $('note');
+  if (!el) { el = document.createElement('span'); el.id = 'note'; el.className = 'busy'; $('notes').append(el); }
+  el.textContent = text; el.hidden = false;
   clearTimeout(noteTimer); noteTimer = setTimeout(() => { el.hidden = true; }, 1800);
 }
 $('share').addEventListener('click', async () => {
