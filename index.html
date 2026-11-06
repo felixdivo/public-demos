@@ -3,35 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Demos · divo.link</title>
-<meta name="description" content="Small interactive science demos.">
+<title>demo.divo.link</title>
+<meta name="description" content="Small interactive demos.">
 <link rel="stylesheet" href="assets/site.css">
 <style>
-/* Layout: one narrow column of numbered demo entries */
-ol{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
-li{border-bottom:1px solid var(--line)}
-a.demo{display:grid;grid-template-columns:auto 1fr;gap:4px 18px;padding:22px 0;text-decoration:none}
-.n{grid-row:span 2;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:2px}
-.t{font-size:24px;transition:color .2s}
-.d{color:var(--muted);font-size:17px}
-a.demo:hover .t,a.demo:focus-visible .t{color:var(--accent)}
-footer{margin-top:48px;color:var(--muted);font-size:15px}
+ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:22px}
+li p{margin:2px 0 0}
 </style>
 </head>
 <body>
-<main class="page">
-  <h1 class="title">Demos</h1>
-  <p class="lede">Small interactive pieces for seeing how things work.</p>
-  <ol id="list">
-    <noscript><li><a class="demo" href="orbitals/"><span class="n">01</span><span class="t">Orbital Explorer</span><span class="d">Atomic, hybrid and molecular orbitals in 3D.</span></a></li></noscript>
-  </ol>
-  <footer>divo.link</footer>
+<main>
+  <h1>demo.divo.link</h1>
+  <ul id="list">
+    <noscript><li><a href="orbitals/">Orbital Explorer</a><p class="muted">Atomic, hybrid and molecular orbitals in 3D.</p></li></noscript>
+  </ul>
 </main>
 <script src="demos.js"></script>
 <script>
-document.getElementById('list').innerHTML = (window.DEMOS || []).map((d, i) =>
-  `<li><a class="demo" href="${d.path}"><span class="n">${String(i + 1).padStart(2, '0')}</span>` +
-  `<span class="t">${d.title}</span><span class="d">${d.description || ''}</span></a></li>`).join('');
+document.getElementById('list').innerHTML = (window.DEMOS || []).map(d =>
+  `<li><a href="${d.path}">${d.title}</a>${d.description ? `<p class="muted">${d.description}</p>` : ''}</li>`).join('');
 </script>
 </body>
 </html>
