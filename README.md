@@ -8,11 +8,12 @@ There is no build step: every file here is served as-is.
 index.html        front page; lists the demos from demos.js
 demos.js          the list of demos (one entry per folder)
 assets/site.css   shared look: colors, Computer Modern font, page layout
-assets/fonts/     Computer Modern (CMU Serif, SIL Open Font License)
+assets/fonts/     Computer Modern (CMU Serif) and its license, OFL.txt
 _template/        starting point for a new demo
 404.html          shown for unknown addresses
 orbitals/         Orbital Explorer
 CNAME             the custom domain (demos.divo.link)
+LICENSE           MIT
 .nojekyll         tells Pages to serve files untouched
 ```
 
@@ -28,3 +29,7 @@ CNAME             the custom domain (demos.divo.link)
    `https://demos.divo.link/pendulum/`.
 
 Use relative links (`../assets/site.css`) so pages also work when opened straight from disk.
+
+## License
+
+MIT, see [LICENSE](LICENSE). The Computer Modern fonts are under the SIL Open Font License ([assets/fonts/OFL.txt](assets/fonts/OFL.txt)).
