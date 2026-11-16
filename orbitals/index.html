@@ -595,19 +595,27 @@ function clearGroup(g) {
   }
 }
 function label(text, size) {
-  const c = document.createElement('canvas'); c.width = c.height = 64;
-  const g = c.getContext('2d'); g.fillStyle = 'rgba(236,236,236,0.6)'; g.font = 'italic 44px "CMU Serif", Georgia, serif';
-  g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, 32, 34);
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthWrite: false, transparent: true }));
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d'); g.font = 'italic 88px "CMU Serif", Georgia, serif';
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+  g.lineWidth = 9; g.strokeStyle = 'rgba(11,12,15,0.5)'; g.strokeText(text, 64, 68);   // dark halo: readable over pale lobes too
+  g.fillStyle = 'rgba(236,236,236,0.75)'; g.fillText(text, 64, 68);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthWrite: false, depthTest: false, transparent: true }));
+  s.renderOrder = 12;   // always drawn on top of the orbital
   s.scale.set(size, size, 1); return s;
 }
-function buildAxes(R) {
+function buildAxes(R, atoms) {
   clearGroup(axes);
   const mat = new THREE.LineBasicMaterial({ color: 0xececec, transparent: true, opacity: 0.14 });
-  [[1,0,0,'x'],[0,1,0,'y'],[0,0,1,'z']].forEach(([a, b, c, t]) => {
+  [[1,0,0,'x'],[0,1,0,'y'],[0,0,1,'z']].forEach(([a, b, c, t], ax) => {
     const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-a*R,-b*R,-c*R), new THREE.Vector3(a*R,b*R,c*R)]);
     axes.add(new THREE.Line(g, mat.clone()));
-    const s = label(t, R * 0.1); s.position.set(a * R * 1.08, b * R * 1.08, c * R * 1.08); axes.add(s);
+    let d = R * 1.08;   // push the label past any atom sitting on this axis (e.g. benzene's H on x)
+    for (const [el, ...p] of atoms) {
+      const r = ATOM_STYLE[el][1], off = Math.hypot(...p.filter((_, i) => i !== ax));
+      if (p[ax] > 0 && off < r + R * 0.1) d = Math.max(d, p[ax] + r + R * 0.1);
+    }
+    const s = label(t, R * 0.1); s.position.set(a * d, b * d, c * d); axes.add(s);
   });
 }
 
@@ -795,6 +803,7 @@ function build() {
     buildCloud(G, spec).forEach((pts, fi) => { holders[fi].add(pts); radius[fi] = G.L * 0.8; });
   }
   for (const r of radius) R = Math.max(R, r);
+  if (spec.layout !== 'grid') for (const [el, x, y, z] of spec.atoms) R = Math.max(R, Math.hypot(x, y, z) + ATOM_STYLE[el][1]);   // atoms beyond the orbital (e.g. benzene's H) stay inside the axes
   const extras = holder => {
     if (spec.atoms.length) holder.add(buildAtoms(spec.atoms));
     if (spec.nucleus) holder.add(new THREE.Mesh(new THREE.SphereGeometry(G.L * 0.012, 16, 8), new THREE.MeshBasicMaterial({ color: 0xffffff })));
@@ -813,7 +822,7 @@ function build() {
     measure();
     layoutCells();
     fitR = Math.max(R, 1) * 1.02;
-    if (!grid) buildAxes(fitR * 0.95);
+    if (!grid) buildAxes(fitR * 0.95, spec.atoms);
     fit(fitR, fittedKey === null);
     fittedKey = spec.key;
   } else layoutCells();
