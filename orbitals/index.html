@@ -66,10 +66,10 @@ body{
 .name.formula{font-style:normal}   /* element symbols are upright */
 .sub{margin:10px 0 0;color:var(--muted);font-size:16px}
 .sub sub{font-size:.7em;line-height:0}
-.legend{display:flex;gap:16px;margin-top:8px;font-size:15px;color:var(--muted);flex-wrap:wrap}
+.legend{display:flex;gap:6px 16px;margin-top:8px;font-size:15px;color:var(--muted);flex-wrap:wrap}
 .legend span{display:inline-flex;align-items:center;gap:7px}
 .legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
-.legend span:has(.atom):not(span:has(.atom) + span){margin-left:10px}   /* small gap between phase and element keys */
+.legend .br{flex-basis:100%}   /* element key on its own line, below the phase key */
 .hud > div:first-child{min-width:0}
 .hud-right{position:absolute;top:0;right:0;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
 .hud-right .controls{display:flex;align-items:center;gap:18px;pointer-events:auto}
@@ -956,7 +956,7 @@ function renderUI() {
   else lg.innerHTML = `<span>one color per hybrid · darker lobes ψ &lt; 0</span>`;
   if (S.tab === 'molecular') {   // which sphere is which element
     const els = ['C', 'N', 'O', 'F', 'H'].filter(e => MOLS[S.mol].atoms.some(a => a[0] === e));
-    lg.insertAdjacentHTML('beforeend', els.map(e => `<span><i class="atom" style="background:#${ATOM_STYLE[e][0].toString(16).padStart(6, '0')}"></i>${e}</span>`).join(''));
+    lg.insertAdjacentHTML('beforeend', '<b class="br"></b>' + els.map(e => `<span><i class="atom" style="background:#${ATOM_STYLE[e][0].toString(16).padStart(6, '0')}"></i>${e}</span>`).join(''));
   }
   const pct = Math.round(100 * (S.tab === 'hybrid' && S.hi === 'all' ? ENCLOSE_SET : ENCLOSE));
   $('surface-note').textContent = S.view === 'cloud' ? 'each dot: one possible measured position' : `${pct}% probability surface`;
