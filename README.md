@@ -22,7 +22,7 @@ LICENSE           MIT
 ## Add a demo
 
 1. Copy `_template/` to a new folder, e.g. `pendulum/`, and build the demo in its `index.html`.
-   Each demo can have its own look; demos can also be fully self-contained (like `orbitals/`).
+   Each demo can have its own look; `orbitals/`, for example, uses `assets/cmu.css` for Computer Modern.
 2. Add an entry to `demos.js`:
    ```js
    { path: "pendulum/", title: "Pendulum", description: "One line on what it shows." },

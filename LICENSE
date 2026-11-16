@@ -23,6 +23,6 @@ SOFTWARE.
 ---
 
 Third-party material keeps its own license:
-- Computer Modern fonts (CMU Serif) in assets/fonts/ and embedded in
-  orbitals/index.html: SIL Open Font License 1.1, see assets/fonts/OFL.txt.
+- Computer Modern fonts (CMU Serif) in assets/fonts/: SIL Open Font
+  License 1.1, see assets/fonts/OFL.txt.
 - Three.js, loaded from a CDN at run time: MIT License, (c) three.js authors.
