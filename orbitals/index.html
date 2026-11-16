@@ -674,7 +674,7 @@ function dot() {
 }
 // Cloud: each dot is one random draw from |ψ|², like one position measurement. The dots build up,
 // then keep being replaced by fresh draws, so the pattern is visibly statistical.
-const BUILD_S = 1.6, LIFE_S = 2.5;   // build-up time; average lifetime of a dot afterwards
+const BUILD_S = 4, LIFE_S = 1.5;   // build-up time; average lifetime of a dot afterwards
 let clouds = [];
 function draw(cl, from, to) {   // fresh samples for dots from..to-1
   const { fld, G, cp, cn, pos, col } = cl, { N, h, L } = G, NN = N * N, cdf = fld.cdf, tot = cdf[cdf.length - 1];
@@ -709,7 +709,7 @@ function stepClouds(dt) {   // cheap per frame: a few hundred binary searches an
   for (const cl of clouds) {
     const g = cl.pts.geometry;
     cl.t += dt;
-    if (cl.t < BUILD_S) { g.setDrawRange(0, Math.ceil(cl.n * (1 - (1 - cl.t / BUILD_S) ** 2))); continue; }
+    if (cl.t < BUILD_S) { g.setDrawRange(0, Math.ceil(cl.n * (cl.t / BUILD_S) ** 1.5)); continue; }   // sparse at first, like single detections
     g.setDrawRange(0, cl.n);
     const k = Math.min(cl.n, Math.round(cl.n * dt / LIFE_S));
     if (!k) continue;
