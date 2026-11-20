@@ -412,34 +412,38 @@ const MOLS = {
 };
 
 /* ---------- state ---------- */
-// m, hi and mo hold either one orbital or 'all' for the whole set; a single orbital is the default everywhere
+// m, hi and mo hold one orbital, 'all' (the whole set in one picture) or 'overview' (side by side); one orbital is the default.
+// mo can also be 'occupied': only the orbitals that hold electrons, in one picture.
 const S = { tab: 'atomic', sub: '3d', m: 0, hyb: 'sp3', hi: '0', mol: 'c6h6', mo: 'pi2', view: 'surface' };
+const mode = v => v === 'all' || v === 'overview' ? v : 'one';
+const molMode = v => v === 'occupied' ? v : mode(v);
 const setColors = (i, multi) => multi ? { pos: SET_HUES[i % SET_HUES.length], neg: dim(SET_HUES[i % SET_HUES.length]) } : { pos: POS, neg: NEG };
 
 /* ---------- specs: basis functions + coefficient sets ---------- */
 function currentSpec() {
   if (S.tab === 'atomic') {
     const n = +S.sub[0], l = L_OF[S.sub[1]];
-    const all = l && S.m === 'all', ms = all ? ORIENT[l].map(o => o[0]) : [l ? S.m : 0];
+    const md = l ? mode(S.m) : 'one', ms = md === 'one' ? [l ? S.m : 0] : ORIENT[l].map(o => o[0]);
     return { key: `a${S.sub}${S.m}`, basis: ms.map(m => orbital(n, l, m)),
-      sets: ms.map((_, i) => ({ c: ms.map((_, j) => +(i === j)), pos: POS, neg: NEG })),
-      atoms: [], opacity: 0.94, nucleus: true,
-      layout: all ? 'grid' : 'single', labels: all ? ORIENT[l].map(o => S.sub[1] + `<sub>${o[1]}</sub>`) : [] };
+      sets: ms.map((_, i) => ({ c: ms.map((_, j) => +(i === j)), ...setColors(i, md === 'all') })),
+      atoms: [], opacity: 0.94, nucleus: true, enclose: md === 'all' ? ENCLOSE_SET : ENCLOSE,
+      layout: md === 'overview' ? 'grid' : 'single', labels: md === 'overview' ? ORIENT[l].map(o => S.sub[1] + `<sub>${o[1]}</sub>`) : [] };
   }
   if (S.tab === 'hybrid') {
     const H = HYBRIDS[S.hyb], n = H.n;
     const basis = [orbital(n,0,0), orbital(n,1,1), orbital(n,1,-1), orbital(n,1,0)];
     if (n === 3) basis.push(orbital(3,2,0), orbital(3,2,2));
-    const idx = S.hi === 'all' ? H.sets.map((_, i) => i) : [+S.hi];
-    const multi = idx.length > 1;
+    const md = mode(S.hi), idx = md === 'one' ? [+S.hi] : H.sets.map((_, i) => i), all = md === 'all';
     return { key: `h${S.hyb}${S.hi}`, basis,
-      sets: idx.map((i, k) => ({ c: H.sets[i], ...setColors(k, multi) })),
-      atoms: [], opacity: multi ? 0.92 : 0.94, nucleus: true, enclose: multi ? ENCLOSE_SET : ENCLOSE, shape: multi };
+      sets: idx.map((i, k) => ({ c: H.sets[i], ...setColors(k, all) })),
+      atoms: [], opacity: all ? 0.92 : 0.94, nucleus: true, enclose: all ? ENCLOSE_SET : ENCLOSE, shape: all,
+      layout: md === 'overview' ? 'grid' : 'single', labels: md === 'overview' ? idx.map(i => `h<sub>${i + 1}</sub>`) : [] };
   }
-  const M = MOLS[S.mol], all = S.mo === 'all', mos = all ? M.mos : [M.mos.find(x => x.id === S.mo)];
-  return { key: `m${S.mol}${S.mo}`, basis: M.basis(), sets: mos.map(mo => ({ c: mo.c, pos: POS, neg: NEG })),
-    atoms: M.atoms, opacity: 0.8, layout: all ? 'grid' : 'single',
-    labels: mos.map(mo => mo.label + (mo.homo ? '<small>HOMO</small>' : mo.lumo ? '<small>LUMO</small>' : '')) };
+  const M = MOLS[S.mol], md = molMode(S.mo), together = md === 'all' || md === 'occupied';
+  const mos = md === 'one' ? [M.mos.find(x => x.id === S.mo)] : md === 'occupied' ? M.mos.filter(x => x.occ) : M.mos;
+  return { key: `m${S.mol}${S.mo}`, basis: M.basis(), sets: mos.map((mo, k) => ({ c: mo.c, ...setColors(k, together) })),
+    atoms: M.atoms, opacity: 0.8, enclose: together ? ENCLOSE_SET : ENCLOSE, layout: md === 'overview' ? 'grid' : 'single',
+    labels: md === 'overview' ? mos.map(mo => mo.label + (mo.homo ? '<small>HOMO</small>' : mo.lumo ? '<small>LUMO</small>' : '')) : [] };
 }
 function dim(hex) { const c = new THREE.Color(hex); c.lerp(new THREE.Color('#14171b'), 0.55); return '#' + c.getHexString(); }
 
@@ -909,6 +913,9 @@ function chip(html, pressed, onClick, aria) {
 function fill(row, items) { row.replaceChildren(...items); const on = row.querySelector('[aria-pressed="true"]'); on && on.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
 
 function sub(t) { return `<sub>${t}</sub>`; }
+function setChips(n, cur, pick) {   // the whole set side by side, or in one picture
+  return [chip('Overview', cur === 'overview', () => pick('overview'), 'side by side'), chip(`All ${n}`, cur === 'all', () => pick('all'), `all ${n} together`)];
+}
 function renderUI() {
   document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-pressed', b.dataset.tab === S.tab));
   $('view-switch').setAttribute('aria-checked', S.view === 'cloud');
@@ -919,31 +926,43 @@ function renderUI() {
     fill(P, SUBSHELLS.map(s => chip(s, s === S.sub, () => { S.sub = s; S.m = 0; update(); })));
     const n = +S.sub[0], l = L_OF[S.sub[1]];
     fill(Q, l ? [...ORIENT[l].map(([m, t]) => chip(S.sub[1] + sub(t), m === S.m, () => { S.m = m; update(); }, `${S.sub[1]} ${t}`)),
-                 chip(`All ${ORIENT[l].length}`, S.m === 'all', () => { S.m = 'all'; update(); })] : []);
-    const ot = l && S.m !== 'all' ? ORIENT[l].find(o => o[0] === S.m)[1] : '';
+                 ...setChips(ORIENT[l].length, S.m, v => { S.m = v; update(); })] : []);
+    const md = l ? mode(S.m) : 'one', ot = md === 'one' && l ? ORIENT[l].find(o => o[0] === S.m)[1] : '';
     name = S.sub + (ot ? sub(ot) : '');
-    subtitle = l && S.m === 'all' ? `All ${ORIENT[l].length} ${S.sub} orbitals · same energy` : `Hydrogen atom · <i>n</i> = ${n}, <i>l</i> = ${l}`;
+    subtitle = md === 'one' ? `Hydrogen atom · <i>n</i> = ${n}, <i>l</i> = ${l}` : `All ${ORIENT[l].length} ${S.sub} orbitals${md === 'all' ? ' together' : ''} · same energy`;
     const E = (-13.606 / (n * n)).toFixed(2).replace('-', '−');
     info = `<b>${l} angular</b> and <b>${n - l - 1} radial</b> node${n - l - 1 === 1 ? '' : 's'} · <i>E</i> = ${E} eV`;
+    if (md === 'all') { legend = 'set'; info += '. Filled together, the whole set adds up to a spherical density.'; }
   } else if (S.tab === 'hybrid') {
     const H = HYBRIDS[S.hyb];
     fill(P, Object.entries(HYBRIDS).map(([k, h]) => chip(h.label, k === S.hyb, () => { S.hyb = k; S.hi = '0'; update(); })));
     fill(Q, [...H.sets.map((_, i) => chip(`h${sub(i + 1)}`, S.hi === String(i), () => { S.hi = String(i); update(); }, `hybrid ${i + 1}`)),
-             chip(`All ${H.sets.length}`, S.hi === 'all', () => { S.hi = 'all'; update(); })]);
-    name = S.hi === 'all' ? H.label : `${H.label} h${sub(+S.hi + 1)}`;
+             ...setChips(H.sets.length, S.hi, v => { S.hi = v; update(); })]);
+    name = mode(S.hi) === 'one' ? `${H.label} h${sub(+S.hi + 1)}` : H.label;
     const geom = 'symmetry: ' + H.geom.replace(' · ', ` (${H.pg}) · `);
-    subtitle = S.hi === 'all' ? `${H.sets.length} hybrids · ${geom}` : `One of ${H.sets.length} ${H.label} hybrids · ${geom}`;
+    subtitle = mode(S.hi) === 'one' ? `One of ${H.sets.length} ${H.label} hybrids · ${geom}` : `${H.sets.length} hybrids · ${geom}`;
     info = `Built from <b>${H.mix}</b> (<i>n</i> = ${H.n}). Each hybrid has one big lobe pointing at a bond partner.`;
     if (S.hi === 'all') legend = 'set';
   } else {
     const M = MOLS[S.mol];
     fill(P, Object.entries(MOLS).map(([k, m]) => chip(m.label, k === S.mol, () => { S.mol = k; S.mo = (m.mos.find(x => x.homo) || m.mos[0]).id; update(); }, m.name)));
     fill(Q, [...M.mos.map(mo => chip(mo.label, mo.id === S.mo, () => { S.mo = mo.id; update(); })),
-             chip(`All ${M.mos.length}`, S.mo === 'all', () => { S.mo = 'all'; update(); })]);
-    if (S.mo === 'all') {
+             ...setChips(M.mos.length, S.mo, v => { S.mo = v; update(); }),
+             chip('Occupied', S.mo === 'occupied', () => { S.mo = 'occupied'; update(); }, 'occupied orbitals together')]);
+    const md = molMode(S.mo), pi = (M.set || '').includes('π');
+    if (md === 'occupied') {
+      const k = M.mos.filter(x => x.occ).length, dens = !M.set ? 'valence electron density' : pi ? 'π electron density' : '';
       name = M.label;
-      subtitle = `${M.name} · ${M.set || `all ${M.mos.length} valence orbitals`}`;
-      info = 'Lowest energy first, reading left to right. In the list above, energy also rises from left to right.';
+      subtitle = `${M.name} · ${k} occupied ${pi ? 'π ' : ''}orbitals together`;
+      info = 'One color per orbital, showing every orbital that holds electrons.' + (dens ? ` Their densities add up to the ${dens}.` : '');
+      legend = 'set';
+    } else if (md !== 'one') {
+      const all = md === 'all';
+      name = M.label;
+      subtitle = `${M.name} · ${M.set || `all ${M.mos.length} valence orbitals`}${all ? ' together' : ''}`;
+      info = all ? 'One color per orbital. Occupied and empty orbitals are drawn together, so this is not the electron density.'
+        : 'Lowest energy first, reading left to right. In the list above, energy also rises from left to right.';
+      if (all) legend = 'set';
     } else {
       const mo = M.mos.find(x => x.id === S.mo);
       name = mo.label;
@@ -951,18 +970,19 @@ function renderUI() {
       info = mo.text;
     }
   }
-  $('name').innerHTML = name; $('name').classList.toggle('formula', S.tab === 'molecular' && S.mo === 'all');
+  $('name').innerHTML = name; $('name').classList.toggle('formula', S.tab === 'molecular' && molMode(S.mo) !== 'one');
   $('sub').innerHTML = subtitle; $('info').innerHTML = info;
   const t = $('name').textContent, mol = S.tab === 'molecular' && MOLS[S.mol].name;   // e.g. "Benzene π2", "Benzene (C6H6)"
-  document.title = `${!mol ? t : S.mo === 'all' ? `${mol} (${t})` : `${mol} ${t}`} · Orbital Explorer`;
+  document.title = `${!mol ? t : molMode(S.mo) !== 'one' ? `${mol} (${t})` : `${mol} ${t}`} · Orbital Explorer`;
   const lg = $('legend');
   if (legend === 'phase') lg.innerHTML = `<span><i style="background:${POS}"></i>ψ &gt; 0</span><span><i style="background:${NEG}"></i>ψ &lt; 0</span>`;
-  else lg.innerHTML = `<span>one color per hybrid · darker lobes ψ &lt; 0</span>`;
+  else lg.innerHTML = `<span>one color per ${S.tab === 'hybrid' ? 'hybrid' : 'orbital'} · darker lobes ψ &lt; 0</span>`;
   if (S.tab === 'molecular') {   // which sphere is which element
     const els = ['C', 'N', 'O', 'F', 'H'].filter(e => MOLS[S.mol].atoms.some(a => a[0] === e));
     lg.insertAdjacentHTML('beforeend', '<b class="br"></b>' + els.map(e => `<span><i style="background:#${ATOM_STYLE[e][0].toString(16).padStart(6, '0')}"></i>${e}</span>`).join(''));
   }
-  const pct = Math.round(100 * (S.tab === 'hybrid' && S.hi === 'all' ? ENCLOSE_SET : ENCLOSE));
+  const sel = S.tab === 'atomic' ? S.m : S.tab === 'hybrid' ? S.hi : S.mo;
+  const pct = Math.round(100 * (sel === 'all' || sel === 'occupied' ? ENCLOSE_SET : ENCLOSE));
   $('surface-note').textContent = S.view === 'cloud' ? 'each dot: one possible measured position' : `${pct}% probability surface`;
 }
 
@@ -983,11 +1003,11 @@ function stateToHash() {
   if (S.tab === 'atomic') {
     const l = L_OF[S.sub[1]];
     parts = ['atomic', S.sub];
-    if (l) parts.push(S.m === 'all' ? 'all' : slug(ORIENT[l].find(o => o[0] === S.m)[1]));
+    if (l) parts.push(mode(S.m) !== 'one' ? S.m : slug(ORIENT[l].find(o => o[0] === S.m)[1]));
   } else if (S.tab === 'hybrid') {
-    parts = ['hybrid', S.hyb, S.hi === 'all' ? 'all' : 'h' + (+S.hi + 1)];
+    parts = ['hybrid', S.hyb, mode(S.hi) !== 'one' ? S.hi : 'h' + (+S.hi + 1)];
   } else {
-    parts = ['molecular', S.mol, S.mo === 'all' ? 'all' : slug(S.mo)];
+    parts = ['molecular', S.mol, molMode(S.mo) !== 'one' ? S.mo : slug(S.mo)];
   }
   if (S.view === 'cloud') parts.push('cloud');
   return parts.join('-');
@@ -1001,14 +1021,14 @@ function applyHash(hash) {   // returns true if the address named a valid view
   if (tab === 'atomic' && SUBSHELLS.includes(item)) {
     const l = L_OF[item[1]];
     let m = 0;
-    if (l) { const o = ORIENT[l].find(o => slug(o[1]) === v); m = v === 'all' ? 'all' : o ? o[0] : 0; }
+    if (l) { const o = ORIENT[l].find(o => slug(o[1]) === v); m = mode(v) !== 'one' ? v : o ? o[0] : 0; }
     Object.assign(S, { tab, sub: item, m });
   } else if (tab === 'hybrid' && Object.hasOwn(HYBRIDS, item)) {
     const k = +v.replace(/^h/, '') - 1;
-    Object.assign(S, { tab, hyb: item, hi: v === 'all' ? 'all' : k >= 0 && k < HYBRIDS[item].sets.length ? String(k) : '0' });
+    Object.assign(S, { tab, hyb: item, hi: mode(v) !== 'one' ? v : k >= 0 && k < HYBRIDS[item].sets.length ? String(k) : '0' });
   } else if (tab === 'molecular' && Object.hasOwn(MOLS, item)) {
     const M = MOLS[item], f = M.mos.find(x => slug(x.id) === v);
-    Object.assign(S, { tab, mol: item, mo: v === 'all' ? 'all' : f ? f.id : (M.mos.find(x => x.homo) || M.mos[0]).id });
+    Object.assign(S, { tab, mol: item, mo: molMode(v) !== 'one' ? v : f ? f.id : (M.mos.find(x => x.homo) || M.mos[0]).id });
   } else return false;
   S.view = view;
   return true;
