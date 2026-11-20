@@ -495,7 +495,7 @@ function computeGrid(spec) {
   });
   const bmin = lo.map(c => Math.max(-L, -L + (c - 1.6) * h)), bmax = hi.map(c => Math.min(L, -L + (c + 1.6) * h));
   const size = bmax.map((m, a) => Math.max(m - bmin[a], h));
-  const budget = spec.layout === 'grid' ? BUDGET / spec.sets.length : BUDGET;   // small grid cells need less detail
+  const n = spec.sets.length, budget = BUDGET / (spec.layout === 'grid' ? n : Math.sqrt(n));   // small grid cells, or many overlapping surfaces, need less detail each
   const fh = Math.cbrt(size[0] * size[1] * size[2] / budget);
   const dims = size.map(s => Math.max(8, Math.ceil(s / fh) + 1));
   const fine = { ox: bmin[0], oy: bmin[1], oz: bmin[2], h: fh, nx: dims[0], ny: dims[1], nz: dims[2] };
@@ -582,7 +582,7 @@ scene.add(camera, new THREE.AmbientLight(0xffffff, 0.15));
 const controls = new THREE.OrbitControls(camera, canvas);
 controls.enableDamping = true; controls.dampingFactor = 0.08; controls.enablePan = false;
 controls.autoRotate = !reduceMotion; controls.autoRotateSpeed = 0.7;
-controls.addEventListener('start', () => { controls.autoRotate = false; $('status').classList.add('gone'); });
+controls.addEventListener('start', () => { controls.autoRotate = false; targetDist = null; $('status').classList.add('gone'); });   // the user takes over from the automatic zoom
 
 const content = new THREE.Group(); scene.add(content);
 const axes = new THREE.Group(); scene.add(axes);
